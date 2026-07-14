@@ -1,0 +1,12 @@
+ARG BASE_IMAGE=ghcr.io/open-webui/open-webui@sha256:1e65dff0143ff8de0be8082da9d461f298dee9cbd23b2023ac89929b284ce8e4
+FROM ${BASE_IMAGE}
+
+ARG SORIA_OPENWEBUI_REVISION=unknown
+LABEL org.opencontainers.image.revision=${SORIA_OPENWEBUI_REVISION}
+LABEL org.opencontainers.image.source="https://github.com/soria-clawd-bot/open-webui"
+
+# The upstream image already contains the locked Python/runtime dependencies.
+# Overlay the tested fork source and its production frontend bundle so backend
+# and UI changes are deployed as one immutable artifact.
+COPY --chown=0:0 backend/open_webui /app/backend/open_webui
+COPY --chown=0:0 build /app/build
