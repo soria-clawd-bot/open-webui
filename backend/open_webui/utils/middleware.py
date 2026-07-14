@@ -3428,6 +3428,9 @@ async def non_streaming_chat_response_handler(response, ctx):
     response, response_data = get_response_data(response)
     if response_data is None:
         return response
+    hermes_session_id = getattr(response, 'headers', {}).get('X-Hermes-Session-Id')
+    if hermes_session_id and isinstance(response_data, dict):
+        response_data['hermes_session_id'] = hermes_session_id
 
     if event_emitter:
         try:
@@ -3527,6 +3530,11 @@ async def non_streaming_chat_response_handler(response, ctx):
                                 'done': True,
                                 'output': response_output,
                                 'title': title,
+                                **(
+                                    {'hermes_session_id': hermes_session_id}
+                                    if hermes_session_id
+                                    else {}
+                                ),
                             },
                         }
                     )
@@ -3542,6 +3550,11 @@ async def non_streaming_chat_response_handler(response, ctx):
                                 'done': True,
                                 'role': 'assistant',
                                 'output': response_output,
+                                **(
+                                    {'hermes_session_id': hermes_session_id}
+                                    if hermes_session_id
+                                    else {}
+                                ),
                                 **({'usage': usage} if usage else {}),
                             },
                         )
@@ -3634,6 +3647,8 @@ async def streaming_chat_response_handler(response, ctx):
 
         # Handle as a background task
         async def response_handler(response, events):
+            hermes_session_id = response.headers.get('X-Hermes-Session-Id')
+
             def tag_output_handler(content_type, tags, output):
                 """
                 Detect special tags (reasoning, solution, code_interpreter) in streaming
@@ -3952,6 +3967,11 @@ async def streaming_chat_response_handler(response, ctx):
                     nonlocal output
                     nonlocal prior_output
                     nonlocal last_response_id
+                    nonlocal hermes_session_id
+
+                    current_hermes_session_id = response.headers.get('X-Hermes-Session-Id')
+                    if current_hermes_session_id:
+                        hermes_session_id = current_hermes_session_id
 
                     response_tool_calls = []
 
@@ -5219,6 +5239,11 @@ async def streaming_chat_response_handler(response, ctx):
                     'done': True,
                     'output': output,
                     'title': title,
+                    **(
+                        {'hermes_session_id': hermes_session_id}
+                        if hermes_session_id
+                        else {}
+                    ),
                     **({'usage': usage} if usage else {}),
                 }
 
@@ -5231,6 +5256,11 @@ async def streaming_chat_response_handler(response, ctx):
                             {
                                 'done': True,
                                 'output': output,
+                                **(
+                                    {'hermes_session_id': hermes_session_id}
+                                    if hermes_session_id
+                                    else {}
+                                ),
                                 **({'usage': usage} if usage else {}),
                             },
                         )
@@ -5238,13 +5268,28 @@ async def streaming_chat_response_handler(response, ctx):
                         await Chats.upsert_message_to_chat_by_id_and_message_id(
                             metadata['chat_id'],
                             metadata['message_id'],
-                            {'done': True, 'usage': usage},
+                            {
+                                'done': True,
+                                'usage': usage,
+                                **(
+                                    {'hermes_session_id': hermes_session_id}
+                                    if hermes_session_id
+                                    else {}
+                                ),
+                            },
                         )
                     else:
                         await Chats.upsert_message_to_chat_by_id_and_message_id(
                             metadata['chat_id'],
                             metadata['message_id'],
-                            {'done': True},
+                            {
+                                'done': True,
+                                **(
+                                    {'hermes_session_id': hermes_session_id}
+                                    if hermes_session_id
+                                    else {}
+                                ),
+                            },
                         )
 
                 # Send a webhook notification if the user is not active
@@ -5273,6 +5318,11 @@ async def streaming_chat_response_handler(response, ctx):
 
                 ctx['assistant_message'] = {
                     'output': output,
+                    **(
+                        {'hermes_session_id': hermes_session_id}
+                        if hermes_session_id
+                        else {}
+                    ),
                     **({'usage': usage} if usage else {}),
                 }
                 await outlet_filter_handler(ctx)
@@ -5300,13 +5350,25 @@ async def streaming_chat_response_handler(response, ctx):
                                 {
                                     'done': True,
                                     'output': output,
+                                    **(
+                                        {'hermes_session_id': hermes_session_id}
+                                        if hermes_session_id
+                                        else {}
+                                    ),
                                 },
                             )
                         else:
                             await Chats.upsert_message_to_chat_by_id_and_message_id(
                                 metadata['chat_id'],
                                 metadata['message_id'],
-                                {'done': True},
+                                {
+                                    'done': True,
+                                    **(
+                                        {'hermes_session_id': hermes_session_id}
+                                        if hermes_session_id
+                                        else {}
+                                    ),
+                                },
                             )
 
                 try:

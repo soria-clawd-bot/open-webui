@@ -876,6 +876,7 @@ PROFILE_IMAGE_MAX_DATA_URI_SIZE = int(_profile_image_max_data_uri_size) if _prof
 ####################################
 
 ENABLE_FORWARD_USER_INFO_HEADERS = os.getenv('ENABLE_FORWARD_USER_INFO_HEADERS', 'False').lower() == 'true'
+ENABLE_FORWARD_SESSION_INFO_HEADERS = os.getenv('ENABLE_FORWARD_SESSION_INFO_HEADERS', 'False').lower() == 'true'
 
 FORWARD_USER_INFO_HEADER_USER_NAME = os.getenv('FORWARD_USER_INFO_HEADER_USER_NAME', 'X-OpenWebUI-User-Name')
 FORWARD_USER_INFO_HEADER_USER_ID = os.getenv('FORWARD_USER_INFO_HEADER_USER_ID', 'X-OpenWebUI-User-Id')

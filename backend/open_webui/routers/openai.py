@@ -28,9 +28,9 @@ from open_webui.env import (
     AIOHTTP_CLIENT_TIMEOUT,
     AIOHTTP_CLIENT_TIMEOUT_MODEL_LIST,
     BYPASS_MODEL_ACCESS_CONTROL,
+    ENABLE_FORWARD_SESSION_INFO_HEADERS,
     ENABLE_FORWARD_USER_INFO_HEADERS,
     ENABLE_OPENAI_API_PASSTHROUGH,
-    FORWARD_SESSION_INFO_HEADER_CHAT_ID,
     MODELS_CACHE_TTL,
     RESPONSES_API_REPLAY_MAX_BYTES,
     RESPONSES_API_TOOL_OUTPUT_MAX_BYTES,
@@ -45,7 +45,11 @@ from open_webui.models.users import UserModel
 from open_webui.utils.access_control import check_model_access, has_connection_access, has_permission
 from open_webui.utils.anthropic import get_anthropic_models, is_anthropic_url
 from open_webui.utils.auth import get_admin_user, get_verified_user
-from open_webui.utils.headers import get_custom_headers, include_user_info_headers
+from open_webui.utils.headers import (
+    get_custom_headers,
+    include_session_info_headers,
+    include_user_info_headers,
+)
 from open_webui.utils.misc import (
     convert_logit_bias_input_to_json,
     stream_chunks_handler,
@@ -176,8 +180,6 @@ async def get_headers_and_cookies(
 
     if ENABLE_FORWARD_USER_INFO_HEADERS and user:
         headers = include_user_info_headers(headers, user)
-        if metadata and metadata.get('chat_id'):
-            headers[FORWARD_SESSION_INFO_HEADER_CHAT_ID] = metadata.get('chat_id')
 
     token = None
     auth_type = config.get('auth_type')
@@ -215,6 +217,9 @@ async def get_headers_and_cookies(
     if config.get('headers') and isinstance(config.get('headers'), dict):
         custom_headers = get_custom_headers(config.get('headers'), user, metadata, request=request)
         headers.update(custom_headers)
+
+    if ENABLE_FORWARD_SESSION_INFO_HEADERS or ENABLE_FORWARD_USER_INFO_HEADERS:
+        headers = include_session_info_headers(headers, metadata)
 
     return headers, cookies
 

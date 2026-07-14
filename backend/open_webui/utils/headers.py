@@ -5,6 +5,8 @@ from urllib.parse import quote
 
 import jwt
 from open_webui.env import (
+    FORWARD_SESSION_INFO_HEADER_CHAT_ID,
+    FORWARD_SESSION_INFO_HEADER_MESSAGE_ID,
     FORWARD_USER_INFO_HEADER_JWT,
     FORWARD_USER_INFO_HEADER_JWT_EXPIRES_SECONDS,
     FORWARD_USER_INFO_HEADER_JWT_SECRET,
@@ -57,6 +59,25 @@ def include_user_info_headers(headers: dict, user: Optional[Any] = None) -> dict
         FORWARD_USER_INFO_HEADER_USER_EMAIL: user.email.strip(),
         FORWARD_USER_INFO_HEADER_USER_ROLE: user.role,
     }
+
+
+def include_session_info_headers(headers: dict, metadata: Optional[dict] = None) -> dict:
+    """Forward primary-chat provenance without forwarding user identity.
+
+    Auxiliary title/tag/follow-up tasks deliberately omit these headers so
+    downstream session indexes contain only user-visible assistant turns.
+    """
+    metadata = metadata or {}
+    if metadata.get('task'):
+        return headers
+    chat_id = str(metadata.get('chat_id') or '').strip()
+    message_id = str(metadata.get('message_id') or '').strip()
+    if not chat_id:
+        return headers
+    forwarded = {**headers, FORWARD_SESSION_INFO_HEADER_CHAT_ID: chat_id}
+    if message_id:
+        forwarded[FORWARD_SESSION_INFO_HEADER_MESSAGE_ID] = message_id
+    return forwarded
 
 
 def get_custom_headers(custom_headers: dict, user=None, metadata: dict = None, request=None) -> dict:
