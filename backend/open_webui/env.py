@@ -982,6 +982,24 @@ if CHAT_RESPONSE_MAX_TOOL_CALL_ITERATIONS == -1:
 ENABLE_RESPONSES_API_STATEFUL = os.getenv('ENABLE_RESPONSES_API_STATEFUL', 'False').lower() == 'true'
 
 
+def _non_negative_int_env(name: str, default: int) -> int:
+    try:
+        return max(0, int(os.getenv(name, str(default))))
+    except (TypeError, ValueError):
+        return default
+
+
+# Stateless Responses integrations replay prior output items on every turn.
+# Keep that replay comfortably below common proxy/body limits while retaining
+# complete results in Open WebUI's chat storage. Set a value to 0 to disable its
+# corresponding guard.
+RESPONSES_API_REPLAY_MAX_BYTES = _non_negative_int_env('RESPONSES_API_REPLAY_MAX_BYTES', 6_000_000)
+RESPONSES_API_TOOL_OUTPUT_MAX_BYTES = _non_negative_int_env('RESPONSES_API_TOOL_OUTPUT_MAX_BYTES', 1_500_000)
+RESPONSES_API_TOOL_OUTPUT_PREVIEW_BYTES = _non_negative_int_env(
+    'RESPONSES_API_TOOL_OUTPUT_PREVIEW_BYTES', 512
+)
+
+
 CHAT_STREAM_RESPONSE_CHUNK_MAX_BUFFER_SIZE = os.getenv('CHAT_STREAM_RESPONSE_CHUNK_MAX_BUFFER_SIZE', '')
 
 if CHAT_STREAM_RESPONSE_CHUNK_MAX_BUFFER_SIZE == '':

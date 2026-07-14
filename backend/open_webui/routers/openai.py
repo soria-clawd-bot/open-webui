@@ -32,6 +32,9 @@ from open_webui.env import (
     ENABLE_OPENAI_API_PASSTHROUGH,
     FORWARD_SESSION_INFO_HEADER_CHAT_ID,
     MODELS_CACHE_TTL,
+    RESPONSES_API_REPLAY_MAX_BYTES,
+    RESPONSES_API_TOOL_OUTPUT_MAX_BYTES,
+    RESPONSES_API_TOOL_OUTPUT_PREVIEW_BYTES,
 )
 from open_webui.internal.db import get_async_session
 from open_webui.models.access_grants import AccessGrants
@@ -51,6 +54,7 @@ from open_webui.utils.payload import (
     apply_model_params_to_body_openai,
     apply_system_prompt_to_body,
 )
+from open_webui.utils.responses_history import compact_responses_history
 from open_webui.utils.session_pool import (
     cleanup_response,
     get_session,
@@ -1067,6 +1071,39 @@ def convert_to_responses_payload(payload: dict) -> dict:
     return responses_payload
 
 
+def compact_responses_payload(payload: dict) -> dict:
+    """Apply the stateless replay budget immediately before transmission."""
+
+    payload, result = compact_responses_history(
+        payload,
+        max_replay_bytes=RESPONSES_API_REPLAY_MAX_BYTES,
+        max_tool_output_bytes=RESPONSES_API_TOOL_OUTPUT_MAX_BYTES,
+        preview_bytes=RESPONSES_API_TOOL_OUTPUT_PREVIEW_BYTES,
+    )
+
+    if result.compacted:
+        log.info(
+            'Compacted Responses replay: payload_bytes=%d->%d tool_output_bytes=%d->%d compacted_outputs=%d',
+            result.original_bytes,
+            result.final_bytes,
+            result.original_tool_output_bytes,
+            result.final_tool_output_bytes,
+            result.compacted_tool_outputs,
+        )
+
+    if RESPONSES_API_REPLAY_MAX_BYTES > 0 and result.final_bytes > RESPONSES_API_REPLAY_MAX_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=(
+                'The Responses request is still too large after compacting historical tool results '
+                f'({result.final_bytes} bytes; budget {RESPONSES_API_REPLAY_MAX_BYTES}). '
+                'Start a new chat or compact the conversation context.'
+            ),
+        )
+
+    return payload
+
+
 def convert_responses_result(response: dict) -> dict:
     """
     Convert non-streaming Responses API result to Chat Completions format.
@@ -1236,6 +1273,10 @@ async def generate_chat_completion(
             request_url = f'{url}/responses'
         else:
             request_url = f'{url}/chat/completions'
+
+    if is_responses:
+        payload = compact_responses_payload(payload)
+
     requested_model = payload.get('model')
     # For Chat Completions, strip image parts from multimodal tool messages
     # (Chat Completions doesn't support images in tool content).
@@ -1488,7 +1529,7 @@ async def responses(
     Forward requests to the OpenAI Responses API endpoint.
     Routes to the correct upstream backend based on the model field.
     """
-    payload = form_data.model_dump(exclude_none=True)
+    payload = compact_responses_payload(form_data.model_dump(exclude_none=True))
 
     idx = 0
     model_id = form_data.model
