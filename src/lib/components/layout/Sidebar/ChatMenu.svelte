@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { getContext, tick } from 'svelte';
+	import { toast } from 'svelte-sonner';
 
 	import fileSaver from 'file-saver';
 	const { saveAs } = fileSaver;
@@ -13,6 +14,7 @@
 	import Share from '$lib/components/icons/Share.svelte';
 	import ArchiveBox from '$lib/components/icons/ArchiveBox.svelte';
 	import DocumentDuplicate from '$lib/components/icons/DocumentDuplicate.svelte';
+	import Clipboard from '$lib/components/icons/Clipboard.svelte';
 	import Bookmark from '$lib/components/icons/Bookmark.svelte';
 	import BookmarkSlash from '$lib/components/icons/BookmarkSlash.svelte';
 	import {
@@ -21,7 +23,7 @@
 		toggleChatPinnedStatusById
 	} from '$lib/apis/chats';
 	import { chats, folders, settings, theme, user } from '$lib/stores';
-	import { createMessagesList } from '$lib/utils';
+	import { copyToClipboard, createMessagesList } from '$lib/utils';
 	import { getOutputText } from '$lib/components/chat/Messages/structuredOutput';
 	import { downloadChatAsPDF } from '$lib/apis/utils';
 	import Download from '$lib/components/icons/Download.svelte';
@@ -56,6 +58,20 @@
 
 	const checkPinned = async () => {
 		pinned = await getChatPinnedStatusById(localStorage.token, chatId);
+	};
+
+	const copySessionId = async () => {
+		const copied = await copyToClipboard(chatId).catch((error) => {
+			console.error('Failed to copy session ID', error);
+			return false;
+		});
+
+		if (copied) {
+			toast.success($i18n.t('Session ID copied to clipboard'));
+			show = false;
+		} else {
+			toast.error($i18n.t('Failed to copy session ID'));
+		}
 	};
 
 	const getChatAsText = async (chat) => {
@@ -370,6 +386,16 @@
 			>
 				<Pencil strokeWidth="1.5" />
 				<div class="flex items-center">{$i18n.t('Rename')}</div>
+			</button>
+
+			<button
+				id="chat-copy-session-id-button"
+				draggable="false"
+				class="flex gap-2 items-center px-3 py-1.5 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl w-full"
+				on:click={copySessionId}
+			>
+				<Clipboard className="size-4" strokeWidth="1.5" />
+				<div class="flex items-center">{$i18n.t('Copy Session ID')}</div>
 			</button>
 
 			<hr class="border-gray-50/30 dark:border-gray-800/30 my-1" />
