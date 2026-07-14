@@ -51,6 +51,7 @@
 	export let chat;
 	export let history;
 	export let selectedModels;
+	export let params = {};
 	export let showModelSelector = true;
 
 	export let onSaveTempChat: () => {};
@@ -125,6 +126,7 @@
 					{#if showModelSelector}
 						<ModelSelector
 							bind:selectedModels
+							bind:params
 							showSetDefault={!shareEnabled && !readOnly}
 							disabled={readOnly}
 						/>

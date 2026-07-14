@@ -10,9 +10,20 @@
 	const i18n = getContext('i18n');
 
 	export let selectedModels = [''];
+	export let params = {};
 	export let disabled = false;
 
 	export let showSetDefault = true;
+
+	const setReasoningEffort = (effort: string) => {
+		const nextParams = { ...(params ?? {}) };
+		if (effort) {
+			nextParams.reasoning_effort = effort;
+		} else {
+			delete nextParams.reasoning_effort;
+		}
+		params = nextParams;
+	};
 
 	const saveDefaultModel = async () => {
 		const hasEmptyModel = selectedModels.filter((it) => it === '');
@@ -68,6 +79,28 @@
 					/>
 				</div>
 			</div>
+
+			{#if selectedModelIdx === 0}
+				<Tooltip content={$i18n.t('Reasoning Effort')}>
+					<select
+						class="self-center ml-1 h-7 max-w-36 rounded-lg border-0 bg-gray-100 px-2 text-xs font-medium text-gray-700 outline-hidden hover:bg-gray-200 disabled:opacity-50 dark:bg-gray-850 dark:text-gray-200 dark:hover:bg-gray-800"
+						value={params?.reasoning_effort ?? ''}
+						disabled={disabled}
+						aria-label={$i18n.t('Reasoning Effort')}
+						on:change={(event) => setReasoningEffort(event.currentTarget.value)}
+					>
+						<option value="">Effort: High (default)</option>
+						<option value="none">Effort: Off</option>
+						<option value="minimal">Effort: Minimal</option>
+						<option value="low">Effort: Low</option>
+						<option value="medium">Effort: Medium</option>
+						<option value="high">Effort: High</option>
+						<option value="xhigh">Effort: X-High</option>
+						<option value="max">Effort: Max</option>
+						<option value="ultra">Effort: Ultra</option>
+					</select>
+				</Tooltip>
+			{/if}
 
 			{#if $user?.role === 'admin' || ($user?.permissions?.chat?.multiple_models ?? true)}
 				{#if selectedModelIdx === 0}
