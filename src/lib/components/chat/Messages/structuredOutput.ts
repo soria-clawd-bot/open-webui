@@ -111,6 +111,10 @@ function getReasoningText(item: OutputItem): string {
 	return getTextFromParts(summary ?? item.content ?? []);
 }
 
+export function normalizeReasoningMarkdown(text: string): string {
+	return text.replace(/\r\n/g, '\n').replace(/\*{4,}/g, '**\n\n**');
+}
+
 function getToolResultText(item?: OutputItem): string {
 	return (item?.output ?? [])
 		.filter((part) => part?.type !== 'input_image')
@@ -146,10 +150,7 @@ function buildToolCallToken(item: OutputItem, toolOutputByCallId: Record<string,
 function buildReasoningToken(item: OutputItem, isLastItem: boolean) {
 	const duration = item.duration ?? '';
 	const isDone = isDoneStatus(item.status) || item.duration !== undefined || !isLastItem;
-	const text = getReasoningText(item)
-		.split('\n')
-		.map((line) => (line.startsWith('>') ? line : `> ${line}`))
-		.join('\n');
+	const text = normalizeReasoningMarkdown(getReasoningText(item));
 
 	return {
 		summary: isDone ? `Thought for ${duration || 0} seconds` : 'Thinking...',
