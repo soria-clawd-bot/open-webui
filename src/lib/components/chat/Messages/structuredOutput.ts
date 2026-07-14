@@ -59,6 +59,18 @@ export type OutputDisplayItem =
 			tokens: OutputDetailToken[];
 	  };
 
+export function shouldAutoOpenDetailGroup({
+	expandDetails,
+	messageDone,
+	autoOpenedForRun
+}: {
+	expandDetails: boolean;
+	messageDone: boolean;
+	autoOpenedForRun: boolean;
+}): boolean {
+	return expandDetails || !messageDone || autoOpenedForRun;
+}
+
 const GROUPABLE_OUTPUT_TYPES = new Set([
 	'reasoning',
 	'function_call',

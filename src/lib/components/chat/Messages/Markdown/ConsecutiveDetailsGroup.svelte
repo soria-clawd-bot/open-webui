@@ -11,6 +11,7 @@
 	import Sparkles from '$lib/components/icons/Sparkles.svelte';
 	import CheckCircle from '$lib/components/icons/CheckCircle.svelte';
 	import FullHeightIframe from '$lib/components/common/FullHeightIframe.svelte';
+	import { shouldAutoOpenDetailGroup } from '../structuredOutput';
 
 	import { settings } from '$lib/stores';
 
@@ -34,6 +35,7 @@
 
 	let open = false;
 	let userOpen: boolean | null = null;
+	let autoOpenedForRun = false;
 
 	function parseJSONString(str: string) {
 		try {
@@ -46,10 +48,13 @@
 	$: toolCallCount = tokens.filter((t) => t?.attributes?.type === 'tool_calls').length;
 	$: reasoningCount = tokens.filter((t) => t?.attributes?.type === 'reasoning').length;
 
-	$: hasPending =
-		!messageDone &&
-		tokens.some((t) => t?.attributes?.done !== undefined && t?.attributes?.done !== 'true');
-	$: automaticOpen = ($settings?.expandDetails ?? false) || hasPending;
+	$: isActive = !messageDone;
+	$: if (isActive) autoOpenedForRun = true;
+	$: automaticOpen = shouldAutoOpenDetailGroup({
+		expandDetails: $settings?.expandDetails ?? false,
+		messageDone,
+		autoOpenedForRun
+	});
 	$: open = userOpen ?? automaticOpen;
 
 	$: codeInterpreterCount = tokens.filter((t) => t?.attributes?.type === 'code_interpreter').length;
@@ -105,12 +110,11 @@
 			}
 		}
 
-		const prefix = hasPending ? $i18n.t('Exploring') : $i18n.t('Explored');
 		const detail = parts.join(', ');
 		return detail;
 	})();
 
-	$: prefixText = hasPending ? $i18n.t('Exploring') : $i18n.t('Explored');
+	$: prefixText = isActive ? $i18n.t('Exploring') : $i18n.t('Explored');
 </script>
 
 <div {id} class="w-full">
@@ -125,7 +129,7 @@
 	>
 		<div class="flex items-center gap-1.5">
 			<!-- Status icon -->
-			{#if hasPending}
+			{#if isActive}
 				<div>
 					<Spinner className="size-4" />
 				</div>
@@ -141,7 +145,7 @@
 
 			<!-- Summary text -->
 			<div class="flex-1 line-clamp-1">
-				<span class="text-gray-600 dark:text-gray-300 {hasPending ? 'shimmer' : ''}"
+				<span class="text-gray-600 dark:text-gray-300 {isActive ? 'shimmer' : ''}"
 					>{prefixText}</span
 				>
 				{#if summaryText}

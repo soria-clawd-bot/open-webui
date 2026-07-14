@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildOutputDisplayItems, type OutputItem } from './structuredOutput';
+import {
+	buildOutputDisplayItems,
+	shouldAutoOpenDetailGroup,
+	type OutputItem
+} from './structuredOutput';
 
 function reasoning(text: string): OutputItem {
 	return {
@@ -21,6 +25,30 @@ function tool(index: number): OutputItem {
 }
 
 describe('structured Responses output', () => {
+	it('keeps live tool details visible without reopening old completed messages', () => {
+		expect(
+			shouldAutoOpenDetailGroup({
+				expandDetails: false,
+				messageDone: false,
+				autoOpenedForRun: false
+			})
+		).toBe(true);
+		expect(
+			shouldAutoOpenDetailGroup({
+				expandDetails: false,
+				messageDone: true,
+				autoOpenedForRun: true
+			})
+		).toBe(true);
+		expect(
+			shouldAutoOpenDetailGroup({
+				expandDetails: false,
+				messageDone: true,
+				autoOpenedForRun: false
+			})
+		).toBe(false);
+	});
+
 	it('shows one reasoning milestone for every four raw updates', () => {
 		const output: OutputItem[] = [];
 		for (let index = 0; index < 9; index += 1) {
