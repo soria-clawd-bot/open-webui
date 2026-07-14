@@ -11,7 +11,6 @@
 	import ChevronUp from '../icons/ChevronUp.svelte';
 	import ChevronDown from '../icons/ChevronDown.svelte';
 	import Spinner from './Spinner.svelte';
-	import Markdown from '../chat/Messages/Markdown.svelte';
 	import WrenchSolid from '../icons/WrenchSolid.svelte';
 	import CheckCircle from '../icons/CheckCircle.svelte';
 	import Image from './Image.svelte';
@@ -39,7 +38,7 @@
 
 	$: if (!open) expandedResult = false;
 	export let buttonClassName =
-		'w-fit text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition';
+		'w-full text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition';
 
 	const componentId = id || uuidv4();
 
@@ -84,13 +83,46 @@
 		}
 	}
 
+	const PREVIEW_KEYS = [
+		'command',
+		'cmd',
+		'path',
+		'file_path',
+		'query',
+		'pattern',
+		'url',
+		'skill'
+	];
+
+	function scalarPreview(value: unknown): string {
+		if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+			return String(value).replace(/\s+/g, ' ').trim();
+		}
+		return '';
+	}
+
+	function getArgumentPreview(raw: string): string {
+		const parsed = parseArguments(raw);
+		if (!parsed) return raw.replace(/\s+/g, ' ').trim();
+		for (const key of PREVIEW_KEYS) {
+			const preview = scalarPreview(parsed[key]);
+			if (preview) return preview;
+		}
+		for (const value of Object.values(parsed)) {
+			const preview = scalarPreview(value);
+			if (preview) return preview;
+		}
+		return '';
+	}
+
 	export let resultContent: string = '';
 
 	$: result = resultContent || decode(attributes?.result ?? '');
 	$: files = parseJSONString(decode(attributes?.files ?? ''));
 	$: embeds = parseJSONString(decode(attributes?.embeds ?? ''));
-	$: args =
-		open || (Array.isArray(embeds) && embeds.length > 0) ? decode(attributes?.arguments ?? '') : '';
+	$: rawArgs = decode(attributes?.arguments ?? '');
+	$: argumentPreview = getArgumentPreview(rawArgs);
+	$: args = open || (Array.isArray(embeds) && embeds.length > 0) ? rawArgs : '';
 	$: isDone = attributes?.done === 'true';
 	$: isExecuting = attributes?.done && attributes?.done !== 'true';
 
@@ -148,27 +180,15 @@
 				{/if}
 
 				<!-- Label -->
-				<div class="flex-1 line-clamp-1">
-					<!-- Short label (below md) -->
-					<span class="@md:hidden text-black dark:text-white">{attributes.name}</span>
-					<!-- Full label (md and above) -->
-					<span class="hidden @md:inline font-normal">
-						{#if isDone}
-							<Markdown
-								id={`${componentId}-tool-call-title`}
-								content={$i18n.t('View Result from **{{NAME}}**', {
-									NAME: attributes.name
-								})}
-							/>
-						{:else}
-							<Markdown
-								id={`${componentId}-tool-call-executing`}
-								content={$i18n.t('Executing **{{NAME}}**...', {
-									NAME: attributes.name
-								})}
-							/>
-						{/if}
+				<div class="flex-1 min-w-0 flex items-baseline gap-1.5 text-xs">
+					<span class="shrink-0 font-medium text-gray-700 dark:text-gray-200">
+						{attributes.name}
 					</span>
+					{#if argumentPreview}
+						<span class="min-w-0 truncate font-normal text-gray-400 dark:text-gray-500">
+							{argumentPreview}
+						</span>
+					{/if}
 				</div>
 
 				<!-- Chevron -->
