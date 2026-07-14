@@ -390,8 +390,10 @@
 					{:else if textContent.length > 0}
 						<Collapsible
 							title={detailToken.summary}
-							open={detailToken?.attributes?.type === 'reasoning' ||
-								($settings?.expandDetails ?? false)}
+							open={($settings?.expandDetails ?? false) ||
+								(detailToken?.attributes?.type === 'reasoning' &&
+									!done &&
+									detailToken?.attributes?.done !== 'true')}
 							attributes={detailToken?.attributes}
 							messageDone={done}
 							className="w-full space-y-1"
@@ -439,8 +441,8 @@
 		{:else if textContent.length > 0}
 			<Collapsible
 				title={token.summary}
-				open={token?.attributes?.type === 'reasoning' ||
-					($settings?.expandDetails ?? false)}
+				open={($settings?.expandDetails ?? false) ||
+					(token?.attributes?.type === 'reasoning' && !done && token?.attributes?.done !== 'true')}
 				attributes={token?.attributes}
 				messageDone={done}
 				className="w-full space-y-1"

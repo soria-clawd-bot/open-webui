@@ -16,6 +16,7 @@
 	import Image from './Image.svelte';
 	import FullHeightIframe from './FullHeightIframe.svelte';
 	import { settings } from '$lib/stores';
+	import { buildSafeToolArguments } from '$lib/utils/toolPreviews';
 
 	export let id: string = '';
 	export let attributes: {
@@ -71,62 +72,20 @@
 		}
 	}
 
-	function parseArguments(str: string): Record<string, unknown> | null {
-		try {
-			const parsed = parseJSONString(str);
-			if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
-				return parsed as Record<string, unknown>;
-			}
-			return null;
-		} catch {
-			return null;
-		}
-	}
-
-	const PREVIEW_KEYS = [
-		'command',
-		'cmd',
-		'path',
-		'file_path',
-		'query',
-		'pattern',
-		'url',
-		'skill'
-	];
-
-	function scalarPreview(value: unknown): string {
-		if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-			return String(value).replace(/\s+/g, ' ').trim();
-		}
-		return '';
-	}
-
-	function getArgumentPreview(raw: string): string {
-		const parsed = parseArguments(raw);
-		if (!parsed) return raw.replace(/\s+/g, ' ').trim();
-		for (const key of PREVIEW_KEYS) {
-			const preview = scalarPreview(parsed[key]);
-			if (preview) return preview;
-		}
-		for (const value of Object.values(parsed)) {
-			const preview = scalarPreview(value);
-			if (preview) return preview;
-		}
-		return '';
-	}
-
 	export let resultContent: string = '';
 
 	$: result = resultContent || decode(attributes?.result ?? '');
 	$: files = parseJSONString(decode(attributes?.files ?? ''));
 	$: embeds = parseJSONString(decode(attributes?.embeds ?? ''));
 	$: rawArgs = decode(attributes?.arguments ?? '');
-	$: argumentPreview = getArgumentPreview(rawArgs);
-	$: args = open || (Array.isArray(embeds) && embeds.length > 0) ? rawArgs : '';
+	$: safeArgs = buildSafeToolArguments(rawArgs);
+	$: argumentPreview = safeArgs.preview;
+	$: args = open ? safeArgs.display : '';
+	$: embedArgs = Array.isArray(embeds) && embeds.length > 0 ? rawArgs : '';
 	$: isDone = attributes?.done === 'true';
 	$: isExecuting = attributes?.done && attributes?.done !== 'true';
 
-	$: parsedArgs = parseArguments(args);
+	$: parsedArgs = open ? safeArgs.parsed : null;
 	$: parsedResult = parseJSONString(result);
 </script>
 
@@ -141,7 +100,7 @@
 				<div class="my-2" id={`${componentId}-tool-call-embed-${idx}`}>
 					<FullHeightIframe
 						src={embed}
-						{args}
+						args={embedArgs}
 						allowScripts={true}
 						allowForms={$settings?.iframeSandboxAllowForms ?? false}
 						allowSameOrigin={$settings?.iframeSandboxAllowSameOrigin ?? false}

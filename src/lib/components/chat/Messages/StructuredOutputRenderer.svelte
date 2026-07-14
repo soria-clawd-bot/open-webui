@@ -32,7 +32,7 @@
 	const getDetailTitle = (detailToken: OutputDetailToken): any => detailToken.summary;
 	const getDetailAttributes = (detailToken: OutputDetailToken): any => detailToken.attributes;
 
-	$: displayItems = buildOutputDisplayItems(output) as OutputDisplayItem[];
+	$: displayItems = buildOutputDisplayItems(output, done) as OutputDisplayItem[];
 </script>
 
 {#each displayItems as displayItem (displayItem.id)}
@@ -77,8 +77,10 @@
 					{:else if detailToken.text?.length > 0}
 						<Collapsible
 							title={getDetailTitle(detailToken)}
-							open={detailToken.attributes?.type === 'reasoning' ||
-								($settings?.expandDetails ?? false)}
+							open={($settings?.expandDetails ?? false) ||
+								(detailToken.attributes?.type === 'reasoning' &&
+									!done &&
+									detailToken.attributes?.done !== 'true')}
 							attributes={getDetailAttributes(detailToken)}
 							messageDone={done}
 							className="w-full space-y-1"
@@ -118,8 +120,10 @@
 		{:else if detailToken.text?.length > 0}
 			<Collapsible
 				title={getDetailTitle(detailToken)}
-				open={detailToken.attributes?.type === 'reasoning' ||
-					($settings?.expandDetails ?? false)}
+				open={($settings?.expandDetails ?? false) ||
+					(detailToken.attributes?.type === 'reasoning' &&
+						!done &&
+						detailToken.attributes?.done !== 'true')}
 				attributes={getDetailAttributes(detailToken)}
 				messageDone={done}
 				className="w-full space-y-1"

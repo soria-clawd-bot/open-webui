@@ -32,8 +32,8 @@
 	export let messageDone = true;
 	export let allowEmbeds = true;
 
-	let open = $settings?.expandDetails ?? false;
-	let initialOpenApplied = false;
+	let open = false;
+	let userOpen: boolean | null = null;
 
 	function parseJSONString(str: string) {
 		try {
@@ -45,14 +45,12 @@
 
 	$: toolCallCount = tokens.filter((t) => t?.attributes?.type === 'tool_calls').length;
 	$: reasoningCount = tokens.filter((t) => t?.attributes?.type === 'reasoning').length;
-	$: if (!initialOpenApplied && (reasoningCount > 0 || toolCallCount > 0)) {
-		open = true;
-		initialOpenApplied = true;
-	}
 
 	$: hasPending =
 		!messageDone &&
 		tokens.some((t) => t?.attributes?.done !== undefined && t?.attributes?.done !== 'true');
+	$: automaticOpen = ($settings?.expandDetails ?? false) || hasPending;
+	$: open = userOpen ?? automaticOpen;
 
 	$: codeInterpreterCount = tokens.filter((t) => t?.attributes?.type === 'code_interpreter').length;
 
@@ -122,7 +120,7 @@
 		aria-label={$i18n.t('Toggle details')}
 		aria-expanded={open}
 		on:click={() => {
-			open = !open;
+			userOpen = !open;
 		}}
 	>
 		<div class="flex items-center gap-1.5">

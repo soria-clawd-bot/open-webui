@@ -38,6 +38,7 @@ export type OutputDetailToken = {
 		files?: string;
 		embeds?: string;
 		output?: string;
+		updates?: string;
 	};
 };
 
@@ -72,6 +73,8 @@ const OPENAI_TOOL_NAMES: Record<string, string> = {
 	file_search_call: 'File Search',
 	computer_call: 'Computer Use'
 };
+
+const REASONING_MILESTONE_SIZE = 4;
 
 function getTextFromParts(parts: OutputContentPart[] = []): string {
 	return parts
@@ -113,6 +116,44 @@ function getReasoningText(item: OutputItem): string {
 
 export function normalizeReasoningMarkdown(text: string): string {
 	return text.replace(/\r\n/g, '\n').replace(/\*{4,}/g, '**\n\n**');
+}
+
+function normalizeVisibleText(text: string): string {
+	return text.replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+export function compactReasoningMilestones(
+	tokens: OutputDetailToken[],
+	milestoneSize = REASONING_MILESTONE_SIZE
+): OutputDetailToken[] {
+	const size = Math.max(1, Math.floor(milestoneSize));
+	const reasoningTokens = tokens.filter((token) => token.attributes.type === 'reasoning');
+	if (reasoningTokens.length <= 1 || size === 1) return tokens;
+
+	const replacements = new Map<OutputDetailToken, OutputDetailToken | null>();
+	for (let index = 0; index < reasoningTokens.length; index += size) {
+		const bucket = reasoningTokens.slice(index, index + size);
+		const milestone = bucket[bucket.length - 1];
+		for (const hidden of bucket.slice(0, -1)) replacements.set(hidden, null);
+		replacements.set(milestone, {
+			...milestone,
+			summary: bucket.length > 1 ? `Progress (${bucket.length} updates)` : milestone.summary,
+			text: bucket
+				.map((token) => token.text.trim())
+				.filter(Boolean)
+				.join('\n\n---\n\n'),
+			attributes: {
+				...milestone.attributes,
+				updates: String(bucket.length)
+			}
+		});
+	}
+
+	return tokens.flatMap((token) => {
+		if (!replacements.has(token)) return [token];
+		const replacement = replacements.get(token);
+		return replacement ? [replacement] : [];
+	});
 }
 
 function getToolResultText(item?: OutputItem): string {
@@ -250,10 +291,21 @@ function buildDetailToken(
 	return null;
 }
 
-export function buildOutputDisplayItems(output: OutputItem[] = []): OutputDisplayItem[] {
+export function buildOutputDisplayItems(
+	output: OutputItem[] = [],
+	messageDone = true
+): OutputDisplayItem[] {
 	const displayItems: OutputDisplayItem[] = [];
 	const currentDetailTokens: OutputDetailToken[] = [];
 	const toolOutputByCallId: Record<string, OutputItem> = {};
+	const completedMessageTexts = new Set(
+		messageDone
+			? output
+					.filter((item) => item?.type === 'message')
+					.map((item) => normalizeVisibleText(getMessageText(item)))
+					.filter(Boolean)
+			: []
+	);
 
 	for (const item of output) {
 		if (item?.type === 'function_call_output' && item.call_id) {
@@ -262,17 +314,18 @@ export function buildOutputDisplayItems(output: OutputItem[] = []): OutputDispla
 	}
 
 	const flushDetails = () => {
-		if (currentDetailTokens.length > 1) {
+		const compactedTokens = compactReasoningMilestones(currentDetailTokens);
+		if (compactedTokens.length > 1) {
 			displayItems.push({
 				type: 'detail_group',
 				id: `detail-group-${displayItems.length}`,
-				tokens: [...currentDetailTokens]
+				tokens: compactedTokens
 			});
-		} else if (currentDetailTokens.length === 1) {
+		} else if (compactedTokens.length === 1) {
 			displayItems.push({
 				type: 'detail_single',
 				id: `detail-${displayItems.length}`,
-				token: currentDetailTokens[0]
+				token: compactedTokens[0]
 			});
 		}
 		currentDetailTokens.length = 0;
@@ -286,6 +339,13 @@ export function buildOutputDisplayItems(output: OutputItem[] = []): OutputDispla
 		if (item?.type && GROUPABLE_OUTPUT_TYPES.has(item.type)) {
 			const token = buildDetailToken(item, index === output.length - 1, toolOutputByCallId);
 			if (token) {
+				if (
+					messageDone &&
+					token.attributes.type === 'reasoning' &&
+					completedMessageTexts.has(normalizeVisibleText(token.text))
+				) {
+					return;
+				}
 				currentDetailTokens.push(token);
 			}
 			return;

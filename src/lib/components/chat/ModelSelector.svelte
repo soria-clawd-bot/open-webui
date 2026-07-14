@@ -15,6 +15,32 @@
 
 	export let showSetDefault = true;
 
+	type ReasoningEffortCapability = {
+		supported: string[];
+		default: string;
+	};
+
+	const getReasoningEffortCapability = (model: any): ReasoningEffortCapability | null => {
+		const capability =
+			model?.capabilities?.reasoning_effort ??
+			model?.openai?.capabilities?.reasoning_effort ??
+			model?.info?.meta?.capabilities?.reasoning_effort;
+		const supported = Array.isArray(capability?.supported)
+			? capability.supported.filter((effort) => typeof effort === 'string' && effort.length > 0)
+			: [];
+		if (supported.length === 0) return null;
+		return {
+			supported,
+			default: supported.includes(capability?.default) ? capability.default : supported[0]
+		};
+	};
+
+	const formatEffort = (effort: string) => {
+		if (effort === 'none') return 'Off';
+		if (effort === 'xhigh') return 'X-High';
+		return effort.charAt(0).toUpperCase() + effort.slice(1);
+	};
+
 	const setReasoningEffort = (effort: string) => {
 		const nextParams = { ...(params ?? {}) };
 		if (effort) {
@@ -24,6 +50,18 @@
 		}
 		params = nextParams;
 	};
+
+	$: selectedModelDefinition =
+		selectedModels.length === 1 ? $models.find((model) => model.id === selectedModels[0]) : null;
+	$: reasoningEffortCapability = getReasoningEffortCapability(selectedModelDefinition);
+	$: if (
+		selectedModels.length === 1 &&
+		$models.length > 0 &&
+		params?.reasoning_effort &&
+		!reasoningEffortCapability?.supported.includes(params.reasoning_effort)
+	) {
+		setReasoningEffort('');
+	}
 
 	const saveDefaultModel = async () => {
 		const hasEmptyModel = selectedModels.filter((it) => it === '');
@@ -80,24 +118,21 @@
 				</div>
 			</div>
 
-			{#if selectedModelIdx === 0}
+			{#if selectedModelIdx === 0 && reasoningEffortCapability}
 				<Tooltip content={$i18n.t('Reasoning Effort')}>
 					<select
 						class="self-center ml-1 h-7 max-w-36 rounded-lg border-0 bg-gray-100 px-2 text-xs font-medium text-gray-700 outline-hidden hover:bg-gray-200 disabled:opacity-50 dark:bg-gray-850 dark:text-gray-200 dark:hover:bg-gray-800"
 						value={params?.reasoning_effort ?? ''}
-						disabled={disabled}
+						{disabled}
 						aria-label={$i18n.t('Reasoning Effort')}
 						on:change={(event) => setReasoningEffort(event.currentTarget.value)}
 					>
-						<option value="">Effort: High (default)</option>
-						<option value="none">Effort: Off</option>
-						<option value="minimal">Effort: Minimal</option>
-						<option value="low">Effort: Low</option>
-						<option value="medium">Effort: Medium</option>
-						<option value="high">Effort: High</option>
-						<option value="xhigh">Effort: X-High</option>
-						<option value="max">Effort: Max</option>
-						<option value="ultra">Effort: Ultra</option>
+						<option value=""
+							>Effort: {formatEffort(reasoningEffortCapability.default)} (default)</option
+						>
+						{#each reasoningEffortCapability.supported as effort}
+							<option value={effort}>Effort: {formatEffort(effort)}</option>
+						{/each}
 					</select>
 				</Tooltip>
 			{/if}
