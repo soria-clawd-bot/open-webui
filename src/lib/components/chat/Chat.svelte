@@ -782,6 +782,10 @@
 				}
 
 				history.messages[event.message_id] = message;
+				// Socket events mutate a nested message object. Reassign the history
+				// container so Svelte redraws structured output (including live
+				// reasoning) as soon as the event arrives.
+				history = history;
 			}
 		} else {
 			// Non-active chat completion: queue stays in the global store.
