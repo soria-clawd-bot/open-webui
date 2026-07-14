@@ -33,6 +33,7 @@
 	export let allowEmbeds = true;
 
 	let open = $settings?.expandDetails ?? false;
+	let initialOpenApplied = false;
 
 	function parseJSONString(str: string) {
 		try {
@@ -44,8 +45,9 @@
 
 	$: toolCallCount = tokens.filter((t) => t?.attributes?.type === 'tool_calls').length;
 	$: reasoningCount = tokens.filter((t) => t?.attributes?.type === 'reasoning').length;
-	$: if (reasoningCount > 0) {
+	$: if (!initialOpenApplied && (reasoningCount > 0 || toolCallCount > 0)) {
 		open = true;
+		initialOpenApplied = true;
 	}
 
 	$: hasPending =

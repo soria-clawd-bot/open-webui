@@ -77,7 +77,8 @@
 					{:else if detailToken.text?.length > 0}
 						<Collapsible
 							title={getDetailTitle(detailToken)}
-							open={$settings?.expandDetails ?? false}
+							open={detailToken.attributes?.type === 'reasoning' ||
+								($settings?.expandDetails ?? false)}
 							attributes={getDetailAttributes(detailToken)}
 							messageDone={done}
 							className="w-full space-y-1"
@@ -117,7 +118,8 @@
 		{:else if detailToken.text?.length > 0}
 			<Collapsible
 				title={getDetailTitle(detailToken)}
-				open={$settings?.expandDetails ?? false}
+				open={detailToken.attributes?.type === 'reasoning' ||
+					($settings?.expandDetails ?? false)}
 				attributes={getDetailAttributes(detailToken)}
 				messageDone={done}
 				className="w-full space-y-1"
