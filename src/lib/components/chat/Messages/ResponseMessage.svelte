@@ -41,7 +41,6 @@
 
 	import Name from './Name.svelte';
 	import ProfileImage from './ProfileImage.svelte';
-	import Skeleton from './Skeleton.svelte';
 	import Image from '$lib/components/common/Image.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import RateComment from './RateComment.svelte';
@@ -823,7 +822,9 @@
 							id="response-content-container"
 						>
 							{#if !hasResponseContent && !message.done && !message.error && !hasVisibleStatus}
-								<Skeleton />
+								<div class="py-1 text-sm text-gray-500 dark:text-gray-400 animate-pulse">
+									{$i18n.t('Thinking…')}
+								</div>
 							{:else if hasResponseContent && message.error !== true}
 								<!-- always show message contents even if there's an error -->
 								<!-- unless message.error === true which is legacy error handling, where the error message is stored in message.content -->
