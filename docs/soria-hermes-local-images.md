@@ -21,7 +21,7 @@ HERMES_MEDIA_ROOTS=/home/openclaw/.hermes/generated:/home/openclaw/.hermes/cache
 HERMES_MEDIA_MAX_BYTES=20971520
 ```
 
-The endpoint requires a verified Open WebUI user and validates the opened descriptor, not only the requested pathname. It rejects files outside the allowlist, final-component symlinks, non-regular files, oversized files, unsupported extensions, and image content whose magic bytes do not match the extension.
+The endpoint requires a verified Open WebUI user and validates the opened descriptor, not only the requested pathname. The renderer requests the image with both the same-origin cookie policy and the active Open WebUI bearer token so a stale or absent auth cookie cannot leave a signed-in user's image broken. It rejects files outside the allowlist, final-component symlinks, non-regular files, oversized files, unsupported extensions, and image content whose magic bytes do not match the extension.
 
 For a container deployment, bind-mount every configured root read-only at the same absolute path inside the Open WebUI container and pass both environment variables into the container. The frontend feature alone is insufficient if the backend cannot see the host file.
 

@@ -31,14 +31,18 @@ const hermesDevMedia = (): Plugin => ({
 			}
 
 			const cookie = request.headers.cookie;
-			if (!cookie) {
+			const authorization = request.headers.authorization;
+			if (!cookie && !authorization) {
 				response.statusCode = 401;
 				response.end();
 				return;
 			}
 
 			const authResponse = await fetch(`${hermesBackendUrl}/api/v1/auths/`, {
-				headers: { cookie }
+				headers: {
+					...(cookie ? { cookie } : {}),
+					...(authorization ? { authorization } : {})
+				}
 			}).catch(() => null);
 			const authUser = await authResponse?.json().catch(() => null);
 			if (!authResponse?.ok || !['admin', 'user'].includes(authUser?.role)) {
