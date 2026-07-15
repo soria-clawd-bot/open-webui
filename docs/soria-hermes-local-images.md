@@ -25,7 +25,7 @@ The endpoint requires a verified Open WebUI user and validates the opened descri
 
 For a container deployment, bind-mount every configured root read-only at the same absolute path inside the Open WebUI container and pass both environment variables into the container. The frontend feature alone is insufficient if the backend cannot see the host file.
 
-The hot-reload development service in `scripts/hermes-open-webui-dev.service` uses the same roots and serves media directly from Vite while proxying normal Open WebUI traffic to the live backend.
+The hot-reload development service in `scripts/hermes-open-webui-dev.service` uses the same roots and serves media directly from Vite while proxying normal Open WebUI traffic to the live backend. Set `HERMES_DEV_ALLOWED_HOSTS` to a comma-separated list of external staging hostnames so Vite accepts the browser's `Host` header; IP and localhost access retain Vite's defaults.
 
 ## Hermes render profile
 

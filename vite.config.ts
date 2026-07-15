@@ -10,6 +10,10 @@ const hermesMediaRoots = (process.env.HERMES_MEDIA_ROOTS ?? '')
 	.split(':')
 	.map((root) => root.trim())
 	.filter(Boolean);
+const hermesDevAllowedHosts = (process.env.HERMES_DEV_ALLOWED_HOSTS ?? '')
+	.split(',')
+	.map((host) => host.trim())
+	.filter(Boolean);
 const configuredHermesMediaMaxBytes = Number.parseInt(process.env.HERMES_MEDIA_MAX_BYTES ?? '', 10);
 const hermesMediaMaxBytes =
 	configuredHermesMediaMaxBytes > 0 ? configuredHermesMediaMaxBytes : 20 * 1024 * 1024;
@@ -110,6 +114,7 @@ export default defineConfig({
 		APP_BUILD_HASH: JSON.stringify(process.env.APP_BUILD_HASH || 'dev-build')
 	},
 	server: {
+		...(hermesDevAllowedHosts.length > 0 ? { allowedHosts: hermesDevAllowedHosts } : {}),
 		proxy: proxyTarget
 	},
 	build: {

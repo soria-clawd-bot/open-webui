@@ -9,6 +9,7 @@ Type=simple
 WorkingDirectory=/home/openclaw/worktrees/open-webui-image-staging
 Environment=VITE_WEBUI_BASE_URL=
 Environment=HERMES_DEV_BACKEND_URL=http://100.102.240.60:3001
+Environment=HERMES_DEV_ALLOWED_HOSTS=hermes-ec2.tail639e54.ts.net
 Environment=HERMES_MEDIA_ROOTS=/home/openclaw/.hermes/generated:/home/openclaw/.hermes/cache/images:/home/openclaw/files
 Environment=HERMES_MEDIA_MAX_BYTES=20971520
 ExecStart=/usr/bin/npm run dev -- --host 100.102.240.60 --port 3002
