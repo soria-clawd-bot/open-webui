@@ -15,6 +15,7 @@
 	} from '$lib/stores';
 	import FloatingButtons from '../ContentRenderer/FloatingButtons.svelte';
 	import { createMessagesList, replaceOutsideCode } from '$lib/utils';
+	import { rewriteHermesMediaDirectives } from '$lib/utils/hermes-media';
 
 	/**
 	 * Extracts all top-level <details>...</details> blocks from content,
@@ -122,12 +123,16 @@
 	};
 
 	/** @param {string} messageContent */
-	const formatMessageContent = (messageContent) =>
-		model?.info?.meta?.capabilities?.citations == false
-			? replaceOutsideCode(messageContent, (segment) =>
-					segment.replace(/\s*(\[(?:\d+(?:#[^,\]\s]+)?(?:,\s*\d+(?:#[^,\]\s]+)?)*)\])+/g, '')
-				)
-			: messageContent;
+	const formatMessageContent = (messageContent) => {
+		const contentWithoutCitations =
+			model?.info?.meta?.capabilities?.citations == false
+				? replaceOutsideCode(messageContent, (segment) =>
+						segment.replace(/\s*(\[(?:\d+(?:#[^,\]\s]+)?(?:,\s*\d+(?:#[^,\]\s]+)?)*)\])+/g, '')
+					)
+				: messageContent;
+
+		return rewriteHermesMediaDirectives(contentWithoutCitations, { done });
+	};
 
 	const markdownUpdateHandler = /** @type {any} */ (
 		async (/** @type {{ lang?: string; text?: string }} */ token) => {

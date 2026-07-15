@@ -219,6 +219,12 @@ from open_webui.utils.chat import (
     generate_chat_completion as chat_completion_handler,
 )
 from open_webui.utils.embeddings import generate_embeddings
+from open_webui.utils.hermes_media import (
+    HermesMediaError,
+    configured_hermes_media_max_bytes,
+    configured_hermes_media_roots,
+    open_hermes_image,
+)
 from open_webui.utils.logger import start_logger
 from open_webui.utils.middleware import (
     background_tasks_handler,
@@ -789,6 +795,43 @@ if audit_level != AuditLevel.NONE:
         audit_get_requests=ENABLE_AUDIT_GET_REQUESTS,
         max_body_size=MAX_BODY_LOG_SIZE,
     )
+
+
+@app.api_route('/__hermes_media', methods=['GET', 'HEAD'], include_in_schema=False)
+async def get_hermes_media(
+    request: Request,
+    path: str,
+    user=Depends(get_verified_user),
+):
+    del user
+    try:
+        image = open_hermes_image(
+            path,
+            configured_hermes_media_roots(),
+            configured_hermes_media_max_bytes(),
+        )
+    except (HermesMediaError, OSError):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    headers = {
+        'Cache-Control': 'private, no-store',
+        'Content-Length': str(image.size),
+        'X-Content-Type-Options': 'nosniff',
+    }
+    if request.method == 'HEAD':
+        image.file.close()
+        return Response(media_type=image.content_type, headers=headers)
+
+    def content():
+        try:
+            while chunk := image.file.read(64 * 1024):
+                yield chunk
+        finally:
+            image.file.close()
+
+    return StreamingResponse(content(), media_type=image.content_type, headers=headers)
+
+
 ##################################
 #
 # Chat Endpoints
